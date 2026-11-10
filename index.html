@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>團隊讀經打卡</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EEF1EC; --surface:#FFFFFF; --ink:#1C2A25; --muted:#5C6A64; --line:#D6DDD6;
+  --accent:#2E6A55; --accent-ink:#FFFFFF; --gold:#B07D22; --empty:#DCE2DB; --done:#2E6A55; --warn:#A4472F;
+  --serif:"Noto Serif TC","Songti TC","PMingLiU",serif;
+  --sans:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  color-scheme:light; box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#121815; --surface:#1A231F; --ink:#E4EBE7; --muted:#97A59E; --line:#2C3833;
+    --accent:#6DBB9B; --accent-ink:#0F1613; --gold:#DDAE52; --empty:#27322D; --done:#6DBB9B; --warn:#E08A70;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121815; --surface:#1A231F; --ink:#E4EBE7; --muted:#97A59E; --line:#2C3833;
+  --accent:#6DBB9B; --accent-ink:#0F1613; --gold:#DDAE52; --empty:#27322D; --done:#6DBB9B; --warn:#E08A70;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.6;-webkit-font-smoothing:antialiased}
+main{max-width:760px;margin:0 auto;padding:20px 20px 56px}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+[hidden]{display:none!important}
+
+nav.tabs{display:flex;gap:4px;overflow-x:auto;border-bottom:1px solid var(--line);margin:0 0 20px}
+nav.tabs a{padding:10px 14px;color:var(--muted);text-decoration:none;white-space:nowrap;border-bottom:2.5px solid transparent;margin-bottom:-1px;font-weight:500}
+nav.tabs a[aria-current="page"]{color:var(--ink);border-bottom-color:var(--accent)}
+
+.notice{padding:12px 16px;border-left:3px solid var(--gold);background:var(--surface);border-radius:0 10px 10px 0;font-size:.93rem;margin:0 0 18px}
+.notice.warn{border-left-color:var(--warn)}
+
+.daynav{display:flex;align-items:center;justify-content:space-between;gap:12px;color:var(--muted);font-size:.95rem}
+.arrows{display:flex;gap:6px}
+.iconbtn{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;font-size:1.1rem}
+.iconbtn:disabled{opacity:.35;cursor:default}
+.linkbtn{background:none;border:none;color:var(--accent);padding:4px 0;text-decoration:underline;text-underline-offset:3px}
+.dayno{font-family:var(--serif);font-weight:900;font-size:clamp(3.2rem,13vw,5.4rem);line-height:1;margin:16px 0 6px}
+.dayno small{font-family:var(--sans);font-weight:400;font-size:1rem;color:var(--muted);margin-left:10px}
+.range{font-family:var(--serif);font-weight:600;font-size:clamp(1.25rem,4.6vw,1.6rem);margin:0 0 4px}
+.datehint{color:var(--muted);font-size:.9rem;margin:0 0 18px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 20px;padding:0;list-style:none}
+.chips .book{width:100%;font-size:.85rem;color:var(--muted);margin-top:6px}
+.chip{min-width:48px;height:44px;padding:0 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface);font-weight:500;transition:background .15s,color .15s}
+.chip[aria-pressed="true"]{background:var(--done);border-color:var(--done);color:var(--accent-ink)}
+.primary{width:100%;height:54px;border-radius:14px;border:none;background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:1.05rem}
+.primary.done{background:transparent;border:1.5px solid var(--accent);color:var(--accent)}
+.primary:disabled{opacity:.45;cursor:default}
+.stamp{animation:stamp .45s ease-out}
+@keyframes stamp{0%{transform:scale(.96)}60%{transform:scale(1.02)}100%{transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){.stamp{animation:none}.chip{transition:none}}
+
+.note{margin-top:26px}
+.note label{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-weight:500;margin-bottom:6px}
+.note label span{font-weight:400;font-size:.82rem;color:var(--muted)}
+textarea{width:100%;min-height:130px;resize:vertical;font:inherit;line-height:1.7;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+
+.stats{display:grid;grid-template-columns:repeat(3,1fr);padding:22px 0;margin-top:26px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.stat{padding:0 12px}.stat:first-child{padding-left:0}
+.stat + .stat{border-left:1px solid var(--line)}
+.stat b{display:block;font-family:var(--serif);font-weight:900;font-size:1.9rem;line-height:1.2}
+.stat span{color:var(--muted);font-size:.88rem}
+.behind{margin:18px 0 0}
+.week{display:flex;gap:6px;margin:22px 0 4px;flex-wrap:wrap}
+.week i{width:16px;height:16px;border-radius:50%;background:var(--empty);display:block}
+.week i.on{background:var(--gold)}
+.week i.today{box-shadow:0 0 0 2px var(--bg),0 0 0 3.5px var(--muted)}
+.weeklbl{color:var(--muted);font-size:.85rem}
+
+h2{font-family:var(--serif);font-weight:600;font-size:1.3rem;margin:32px 0 4px}
+h2:first-child{margin-top:4px}
+.sub{color:var(--muted);font-size:.9rem;margin:0 0 16px}
+.testament{font-size:.9rem;color:var(--muted);margin:22px 0 8px;font-weight:500}
+.bookrow{display:grid;grid-template-columns:7.5em 1fr;gap:10px;align-items:start;padding:5px 0}
+.bookrow .name{font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bookrow.complete .name{color:var(--accent);font-weight:700}
+.cells{display:flex;flex-wrap:wrap;gap:3px}
+.cell{width:14px;height:14px;border-radius:3px;border:none;padding:0;background:var(--empty)}
+.cell.on{background:var(--done)}
+.cell.cur{box-shadow:inset 0 0 0 2px var(--gold)}
+@media (max-width:420px){.bookrow{grid-template-columns:5.6em 1fr}.cell{width:12px;height:12px}}
+
+/* 團隊 */
+.members{list-style:none;margin:0;padding:0}
+.member{display:grid;grid-template-columns:36px 1fr auto;gap:12px;align-items:center;padding:14px 0;border-bottom:1px solid var(--line)}
+.member img{width:36px;height:36px;border-radius:50%;object-fit:cover}
+.member .who{font-weight:500}
+.member .who em{font-style:normal;color:var(--muted);font-weight:400;font-size:.85rem;margin-left:6px}
+.member .meta{color:var(--muted);font-size:.85rem}
+.bar{height:6px;border-radius:3px;background:var(--empty);margin-top:6px;overflow:hidden;position:relative}
+.bar i{display:block;height:100%;background:var(--done)}
+.bar b{position:absolute;top:-3px;width:2px;height:12px;background:var(--gold)}
+.member .pct{font-family:var(--serif);font-weight:900;font-size:1.3rem;text-align:right}
+.tag{display:inline-block;font-size:.75rem;padding:1px 8px;border-radius:99px;border:1px solid var(--line);color:var(--muted);margin-left:6px;vertical-align:1px}
+.tag.ok{border-color:var(--accent);color:var(--accent)}
+.tag.late{border-color:var(--warn);color:var(--warn)}
+.field{display:grid;gap:4px;font-size:.92rem;color:var(--muted);margin:0 0 14px}
+.field input{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;height:44px;padding:0 12px;max-width:260px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
+.btn{background:var(--surface);border:1px solid var(--line);border-radius:10px;height:42px;padding:0 16px;font-weight:500}
+.btn.main{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.sm{height:34px;padding:0 12px;font-size:.85rem}
+
+/* 筆記 */
+.notes{list-style:none;margin:0;padding:0}
+.notes li{padding:16px 0;border-bottom:1px solid var(--line)}
+.notes h3{font-family:var(--serif);font-weight:600;font-size:1.05rem;margin:0}
+.notes .meta{color:var(--muted);font-size:.85rem;margin:2px 0 8px}
+.notes p{white-space:pre-wrap;margin:0 0 6px}
+
+/* 計畫 */
+h3.step{font-size:1rem;font-weight:700;margin:26px 0 10px}
+.field select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;height:44px;padding:0 10px}
+.weekpick{display:grid;grid-template-columns:repeat(7,minmax(0,46px));gap:6px}
+.weekpick button{width:100%;height:44px;border-radius:10px;border:1px solid var(--line);background:var(--surface);font-weight:500}
+.weekpick button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.pstats{margin:22px 0 0;padding:16px 18px;background:var(--surface);border-radius:12px;border:1px solid var(--line)}
+.pstats b{font-family:var(--serif);font-size:1.15rem;font-weight:900}
+.pstats div{color:var(--muted);font-size:.92rem}
+.pstats .bad{color:var(--warn);font-weight:500}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:.82rem;color:var(--muted);margin:0 0 10px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-right:5px;border:1px solid var(--line);background:var(--surface)}
+.legend i.f{border:2px solid var(--gold)}
+.legend i.r{background:var(--empty)}
+.month{margin:22px 0 0}
+.month h4{font-family:var(--serif);font-weight:600;font-size:1.05rem;margin:0 0 8px}
+.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.grid .wd{text-align:center;font-size:.78rem;color:var(--muted);padding-bottom:2px}
+.dcell{aspect-ratio:1/1;min-height:44px;border-radius:9px;border:1px solid var(--line);background:var(--surface);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;padding:2px;line-height:1.15}
+.dcell .n{font-size:.78rem;color:var(--muted)}
+.dcell .c{font-weight:700;font-size:1.02rem}
+.dcell.rest{background:var(--empty);border-color:transparent}
+.dcell.rest .c{font-weight:400;font-size:.85rem;color:var(--muted)}
+.dcell.fixed{border:2px solid var(--gold)}
+.dcell.today .n{color:var(--accent);font-weight:700}
+.dcell.sel{outline:2.5px solid var(--accent);outline-offset:1px}
+.dcell.out{visibility:hidden}
+.daypanel{margin:12px 0 0;padding:16px 18px;background:var(--surface);border:1px solid var(--line);border-radius:12px}
+.daypanel .t{font-weight:700}
+.daypanel .rg{font-family:var(--serif);font-weight:600;font-size:1.1rem;margin:4px 0 12px}
+.stepper{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.stepper button{width:44px;height:44px;border:none;background:var(--bg);font-size:1.2rem}
+.stepper span{min-width:72px;text-align:center;font-weight:700}
+.daypanel .row{align-items:center;margin-top:4px}
+.daypanel .hint{color:var(--muted);font-size:.85rem;margin-top:10px}
+.planfoot{position:sticky;bottom:0;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;margin-top:20px;padding:12px 0 calc(12px + env(safe-area-inset-bottom,0px));background:var(--bg);border-top:1px solid var(--line)}
+.planfoot .sum{font-size:.92rem;color:var(--muted)}
+.planfoot .sum.bad{color:var(--warn)}
+.sync{color:var(--muted);font-size:.82rem;margin-top:28px}
+
+/* 登入 */
+.auth{max-width:420px;margin:8vh auto 0}
+.brand{font-family:var(--serif);font-weight:900;font-size:clamp(2.2rem,9vw,3rem);line-height:1.2;margin:0 0 6px}
+.authtabs{display:flex;gap:0;margin:26px 0 18px;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.authtabs button{flex:1;height:44px;border:none;background:var(--surface);font-weight:500;color:var(--muted)}
+.authtabs button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.auth form{display:grid;gap:2px}
+.auth .field input{max-width:none;width:100%}
+.err{color:var(--warn);min-height:1.6em;margin:8px 0 0;font-size:.92rem}
+.av{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:.82rem;font-weight:700;flex:none}
+.account{display:grid;gap:22px;margin-top:8px}
+.account .row .field{margin:0}
+</style>
+</head>
+<body>
+<main>
+<div class="notice warn" id="setupMsg" hidden>還沒有設定伺服器網址。請打開 <b>config.js</b>，把 Apps Script 部署後得到的網址貼到 API_URL，詳細步驟請看 README。</div>
+
+<section class="auth" id="v-login" hidden>
+  <h1 class="brand">團隊讀經打卡</h1>
+  <p class="sub">每天一起讀經，彼此看見進度，一起讀完整本聖經。</p>
+  <div class="authtabs">
+    <button id="tLogin" aria-pressed="true">登入</button>
+    <button id="tJoin" aria-pressed="false">第一次使用</button>
+  </div>
+  <form id="fLogin">
+    <label class="field">名稱<input id="lName" autocomplete="username" required></label>
+    <label class="field">密碼<input id="lPw" type="password" autocomplete="current-password" required></label>
+    <button class="primary" type="submit">登入</button>
+  </form>
+  <form id="fJoin" hidden>
+    <label class="field">邀請碼<input id="jCode" required autocomplete="off"></label>
+    <label class="field">名稱（團隊成員會看到）<input id="jName" maxlength="20" required autocomplete="username"></label>
+    <label class="field">設定密碼（至少 4 個字元）<input id="jPw" type="password" autocomplete="new-password" required></label>
+    <label class="field">再輸入一次密碼<input id="jPw2" type="password" autocomplete="new-password" required></label>
+    <button class="primary" type="submit">加入團隊</button>
+  </form>
+  <p class="err" id="authErr" role="alert"></p>
+  <p class="sub">忘記密碼請聯絡管理員重設。</p>
+</section>
+
+<div id="app" hidden>
+<nav class="tabs" aria-label="主選單">
+  <a href="#today">今日讀經</a>
+  <a href="#team">團隊進度</a>
+  <a href="#notes">我的筆記</a>
+  <a href="#plan">讀經計畫</a>
+  <a href="#admin" id="adminTab" hidden>人員管理</a>
+</nav>
+<!-- 今日 -->
+<section id="v-today" data-view>
+  <div class="notice" id="planNotice" hidden></div>
+  <div class="daynav">
+    <span id="planLabel"></span>
+    <div class="arrows">
+      <button class="iconbtn" id="prevDay" aria-label="前一天">‹</button>
+      <button class="iconbtn" id="nextDay" aria-label="後一天">›</button>
+    </div>
+  </div>
+  <h1 class="dayno" id="dayTitle"></h1>
+  <p class="range" id="rangeText"></p>
+  <p class="datehint" id="dateHint"></p>
+  <ul class="chips" id="chips" aria-label="這天的章節，點一下標記已讀"></ul>
+  <button class="primary" id="checkin"></button>
+
+  <div class="note">
+    <label for="noteText">讀經心得 <span id="noteStatus">只有你自己看得到</span></label>
+    <textarea id="noteText" placeholder="今天讀到哪些經文觸動你？"></textarea>
+  </div>
+
+  <div class="stats" aria-label="讀經統計">
+    <div class="stat"><b id="streak">0</b><span>連續打卡天數</span></div>
+    <div class="stat"><b id="readCount">0</b><span>已讀章數／1189</span></div>
+    <div class="stat"><b id="pct">0%</b><span>全本進度</span></div>
+  </div>
+  <div class="notice behind" id="behind" hidden></div>
+  <div class="week" id="week" aria-label="最近 14 天打卡紀錄"></div>
+  <div class="weeklbl">最近 14 天打卡紀錄</div>
+
+  <h2>全本聖經進度</h2>
+  <p class="sub">每一格是一章，點一下可以補記或取消。金框是目前檢視的那天。</p>
+  <div id="tapestry"></div>
+</section>
+
+<!-- 團隊 -->
+<section id="v-team" data-view hidden>
+  <h2>團隊進度</h2>
+  <p class="sub" id="teamSub"></p>
+  <ul class="members" id="teamList"></ul>
+
+  <h2>我的帳號</h2>
+  <div class="account">
+    <div class="row">
+      <label class="field">顯示名稱<input id="myName" maxlength="20"></label>
+      <button class="btn" id="saveName">更新名稱</button>
+    </div>
+    <div class="row">
+      <label class="field">目前的密碼<input id="pwOld" type="password" autocomplete="current-password"></label>
+      <label class="field">新密碼<input id="pwNew" type="password" autocomplete="new-password"></label>
+      <button class="btn" id="savePw">修改密碼</button>
+    </div>
+    <div><button class="btn" id="logout">登出</button></div>
+  </div>
+</section>
+
+<!-- 筆記 -->
+<section id="v-notes" data-view hidden>
+  <h2>我的讀經筆記</h2>
+  <p class="sub">筆記只有你自己在網站上看得到，團隊成員與管理員都看不到。</p>
+  <ul class="notes" id="noteList"></ul>
+  <p class="sub" id="noteEmpty">還沒有筆記。在「今日讀經」的心得欄寫下第一篇吧。</p>
+</section>
+
+<!-- 計畫 -->
+<section id="v-plan" data-view hidden>
+  <h2>讀經計畫</h2>
+  <p class="sub" id="planSummary"></p>
+  <div class="notice" id="planDefaultNote" hidden></div>
+  <div class="notice" id="planReadonly" hidden>只有管理員可以修改讀經計畫，你可以點日期查看每天的讀經範圍。</div>
+  <div id="planEditor">
+    <h3 class="step">1. 選擇期間</h3>
+    <div class="row">
+      <label class="field">開始日期<input type="date" id="pStart"></label>
+      <label class="field">讀經期間<select id="pMonths"><option value="3">三個月</option><option value="4">四個月</option><option value="5">五個月</option><option value="6">六個月</option></select></label>
+    </div>
+    <h3 class="step">2. 每週固定休息日（可不選）</h3>
+    <div class="weekpick" id="pRest" role="group" aria-label="每週休息日"></div>
+    <div class="pstats" id="pStats"></div>
+    <h3 class="step">3. 微調個別日期（可略過）</h3>
+    <p class="sub">點月曆上的日期，可以增減那天的章數或設為休息日，其他日子會自動重新分配，合計永遠是 1,189 章。</p>
+  </div>
+  <div class="legend"><span><i></i>自動分配</span><span><i class="f"></i>手動調整</span><span><i class="r"></i>休息日</span></div>
+  <div id="cal"></div>
+  <div class="planfoot" id="planFoot">
+    <span class="sum" id="planSum"></span>
+    <div class="row">
+      <button class="btn" id="pRevert">還原</button>
+      <button class="btn main" id="pSave">儲存計畫</button>
+    </div>
+  </div>
+</section>
+
+<!-- 管理 -->
+<section id="v-admin" data-view hidden>
+  <h2>人員管理</h2>
+  <p class="sub">要邀請成員，把這個網站的網址和邀請碼傳給對方，對方在「第一次使用」註冊後就會出現在名單中。管理員可以修改讀經計畫、替成員重設密碼、把成員移出名單；只有建立者可以指定或取消管理員。</p>
+  <ul class="members" id="adminList"></ul>
+  <h2 id="hiddenTitle" hidden>已移出名單的成員</h2>
+  <ul class="members" id="hiddenList"></ul>
+</section>
+
+</div>
+<p class="sync" id="sync"></p>
+</main>
+<script src="config.js"></script>
+<script>
+const BOOKS = [
+ ["創世記",50],["出埃及記",40],["利未記",27],["民數記",36],["申命記",34],["約書亞記",24],["士師記",21],["路得記",4],
+ ["撒母耳記上",31],["撒母耳記下",24],["列王紀上",22],["列王紀下",25],["歷代志上",29],["歷代志下",36],["以斯拉記",10],
+ ["尼希米記",13],["以斯帖記",10],["約伯記",42],["詩篇",150],["箴言",31],["傳道書",12],["雅歌",8],["以賽亞書",66],
+ ["耶利米書",52],["耶利米哀歌",5],["以西結書",48],["但以理書",12],["何西阿書",14],["約珥書",3],["阿摩司書",9],
+ ["俄巴底亞書",1],["約拿書",4],["彌迦書",7],["那鴻書",3],["哈巴谷書",3],["西番雅書",3],["哈該書",2],["撒迦利亞書",14],
+ ["瑪拉基書",4],
+ ["馬太福音",28],["馬可福音",16],["路加福音",24],["約翰福音",21],["使徒行傳",28],["羅馬書",16],["哥林多前書",16],
+ ["哥林多後書",13],["加拉太書",6],["以弗所書",6],["腓立比書",4],["歌羅西書",4],["帖撒羅尼迦前書",5],["帖撒羅尼迦後書",3],
+ ["提摩太前書",6],["提摩太後書",4],["提多書",3],["腓利門書",1],["希伯來書",13],["雅各書",5],["彼得前書",5],["彼得後書",3],
+ ["約翰一書",5],["約翰二書",1],["約翰三書",1],["猶大書",1],["啟示錄",22]
+];
+const OT_COUNT=39, CH=[];
+BOOKS.forEach(([n,c],b)=>{for(let i=1;i<=c;i++)CH.push({b,c:i});});
+const TOTAL=CH.length;
+const LS="bible-reading-v2", LS_OLD="bible-reading-v1";
+
+/* ---------- 日期 ---------- */
+const pad=n=>String(n).padStart(2,"0");
+const dstr=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const todayStr=()=>dstr(new Date());
+const parseDate=s=>{const[y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d);};
+const daysBetween=(a,b)=>Math.round((parseDate(b)-parseDate(a))/86400000);
+const addDays=(s,n)=>{const d=parseDate(s);d.setDate(d.getDate()+n);return dstr(d);};
+const fourMonthsEnd=s=>{const d=parseDate(s);return dstr(new Date(d.getFullYear(),d.getMonth()+4,d.getDate()-1));};
+const mdLabel=s=>{const d=parseDate(s);return `${d.getMonth()+1}/${d.getDate()}`;};
+const fullLabel=s=>{const d=parseDate(s);return `${d.getFullYear()} 年 ${d.getMonth()+1} 月 ${d.getDate()} 日`;};
+const WEEK="日一二三四五六";
+const isDate=s=>typeof s==="string"&&/^\d{4}-\d{2}-\d{2}$/.test(s);
+
+function evenCounts(days){const a=[];for(let i=0;i<days;i++)a.push(Math.floor((i+1)*TOTAL/days)-Math.floor(i*TOTAL/days));return a;}
+function defaultPlan(){const s=todayStr();return{startDate:s,counts:evenCounts(daysBetween(s,fourMonthsEnd(s))+1),cfg:{months:4,restWeekdays:[],fixed:{}}};}
+function normPlan(p){
+  if(!p||!isDate(p.startDate)||!Array.isArray(p.counts)||!p.counts.length)return null;
+  const counts=p.counts.map(n=>Math.max(0,Math.min(200,parseInt(n)||0)));
+  if(counts.reduce((a,b)=>a+b,0)!==TOTAL)return null;
+  const out={startDate:p.startDate,counts};
+  const c=p.cfg;
+  if(c&&typeof c==="object"){
+    const fixed={};if(c.fixed&&typeof c.fixed==="object")for(const k in c.fixed){if(isDate(k))fixed[k]=Math.max(0,Math.min(60,parseInt(c.fixed[k])||0));}
+    out.cfg={months:[3,4,5,6].includes(+c.months)?+c.months:4,restWeekdays:Array.isArray(c.restWeekdays)?c.restWeekdays.filter(n=>Number.isInteger(n)&&n>=0&&n<7):[],fixed};
+  }
+  return out;
+}
+
+/* ---------- 狀態 ---------- */
+let plan=defaultPlan(), planSaved=false, P=[];
+let me={done:new Set(),checkins:{},nick:""};
+let notes={};             // day -> {text, range, updatedAt}
+let members={};           // id -> progress
+let myInfo=null, token=null;
+let viewDay=1, navigated=false;
+let draft=null, draftDirty=false;
+
+function setPlan(p){plan=p;P=[0];p.counts.forEach(c=>P.push(P[P.length-1]+c));}
+const dayCount=()=>plan.counts.length;
+const dayStart=d=>P[d-1], dayEnd=d=>P[d];
+const dateOfDay=d=>addDays(plan.startDate,d-1);
+function scheduledDay(){return Math.min(Math.max(daysBetween(plan.startDate,todayStr())+1,1),dayCount());}
+function dayOfChapter(i){let lo=1,hi=dayCount();while(lo<hi){const m=(lo+hi)>>1;if(P[m]>i)hi=m;else lo=m+1;}return lo;}
+function rangeLabel(s,e){
+  if(s>=TOTAL)return"（超出全本範圍）";
+  e=Math.min(e,TOTAL);if(e<=s)return"—";
+  const parts=[];let i=s;
+  while(i<e){const b=CH[i].b;let j=i;while(j+1<e&&CH[j+1].b===b)j++;const a=CH[i].c,z=CH[j].c;parts.push(BOOKS[b][0]+" "+(a===z?a:a+"–"+z));i=j+1;}
+  return parts.join("、");
+}
+const dayCompleteFor=(set,d)=>{for(let i=dayStart(d);i<dayEnd(d);i++)if(!set.has(i))return false;return true;};
+function isRestDate(ds){const k=daysBetween(plan.startDate,ds);return k>=0&&k<dayCount()&&plan.counts[k]===0;}
+function streakOf(c){const d=new Date();if(!c[dstr(d)])d.setDate(d.getDate()-1);let n=0;
+  for(let g=0;g<1000;g++){const ds=dstr(d);if(c[ds])n++;else if(!isRestDate(ds))break;d.setDate(d.getDate()-1);}return n;}
+function behindOf(set){const end=dayEnd(scheduledDay());let n=0;for(let i=0;i<end;i++)if(!set.has(i))n++;return n;}
+const isManager=()=>!!myInfo&&(myInfo.role==="owner"||myInfo.role==="manager");
+
+const $=id=>document.getElementById(id);
+function setSync(t){$("sync").textContent=t;}
+
+/* ---------- 設定與快取 ---------- */
+const API=((window.APP_CONFIG&&window.APP_CONFIG.API_URL)||"").trim();
+const CACHE="bible-team-v1";
+function serMe(){return{done:[...me.done].sort((a,b)=>a-b),checkins:me.checkins};}
+function loadMe(o){
+  me={done:new Set((o&&Array.isArray(o.done)?o.done:[]).filter(i=>Number.isInteger(i)&&i>=0&&i<TOTAL)),
+      checkins:(o&&o.checkins&&typeof o.checkins==="object")?{...o.checkins}:{}};
+}
+function saveCache(){
+  try{localStorage.setItem(CACHE,JSON.stringify({token,myInfo,plan:planSaved?plan:null,me:serMe(),notes,members}));}catch(e){}
+}
+function setSync(t){$("sync").textContent=t;}
+const timeNow=()=>{const d=new Date();return `${pad(d.getHours())}:${pad(d.getMinutes())}`;};
+
+/* ---------- 伺服器連線 ---------- */
+async function api(action,payload={}){
+  let res,j;
+  try{res=await fetch(API,{method:"POST",body:JSON.stringify(Object.assign({action,token},payload))});}
+  catch(e){throw new Error("無法連線，請檢查網路，變更會在恢復連線後送出");}
+  try{j=await res.json();}catch(e){throw new Error("伺服器回應異常，請確認 config.js 的 API 網址");}
+  if(!j.ok){const er=new Error(j.error||"發生錯誤");er.code=j.code;if(j.code==="auth")logout(true);throw er;}
+  return j.data;
+}
+/* 同一筆資料一次只送一個請求，失敗會保留，之後重送 */
+const writers={};
+function queue(key,action,getPayload){
+  const w=writers[key]||(writers[key]={busy:false,again:false,dirty:false});
+  w.action=action;w.get=getPayload;w.dirty=true;
+  if(w.busy){w.again=true;return;}
+  runWriter(w);
+}
+async function runWriter(w){
+  if(!token)return;
+  w.busy=true;w.dirty=false;setSync("儲存中…");
+  try{await api(w.action,w.get());setSync("已儲存・"+timeNow());}
+  catch(e){w.dirty=true;if(e.code!=="auth")setSync(e.message);}
+  w.busy=false;
+  if(w.again){w.again=false;runWriter(w);}
+}
+const writerPending=k=>!!(writers[k]&&(writers[k].busy||writers[k].dirty));
+function retryDirty(){Object.values(writers).forEach(w=>{if(w.dirty&&!w.busy)runWriter(w);});}
+
+let meTimer=null;
+function commitMe(){
+  saveCache();renderToday();
+  if(myInfo){members[myInfo.id]=Object.assign({},members[myInfo.id]||{},serMe());renderTeam();}
+  clearTimeout(meTimer);
+  meTimer=setTimeout(()=>{meTimer=null;queue("progress","saveProgress",serMe);},1000);
+}
+
+let lastRefresh=0,refreshing=false;
+async function refresh(){
+  if(!token||refreshing)return;
+  refreshing=true;setSync("同步中…");
+  try{const d=await api("state");applyState(d);lastRefresh=Date.now();setSync("已同步・"+timeNow());}
+  catch(e){if(e.code!=="auth")setSync(e.message);}
+  refreshing=false;
+}
+let firstState=true;
+function applyState(d){
+  myInfo=d.me;
+  const p=normPlan(d.plan);
+  if(p){setPlan(p);planSaved=true;}
+  else if(planSaved){setPlan(defaultPlan());planSaved=false;}
+  const m={};(d.members||[]).forEach(x=>m[x.id]=x);members=m;
+  if(meTimer||writerPending("progress"))members[myInfo.id]=Object.assign({},members[myInfo.id]||{},serMe());
+  else loadMe(members[myInfo.id]);
+  const nn={};(d.notes||[]).forEach(n=>nn[n.day]=n);
+  Object.keys(writers).forEach(k=>{if(k.startsWith("note-")&&writerPending(k)){const day=+k.slice(5);if(notes[day])nn[day]=notes[day];}});
+  if(noteTimer&&notes[noteDay])nn[noteDay]=notes[noteDay];
+  notes=nn;
+  if(firstState&&!navigated)viewDay=scheduledDay();
+  firstState=false;
+  if(!draftDirty)draft=null;
+  saveCache();renderAll();route();
+  if(document.activeElement!==$("noteText")){noteDay=null;loadNoteBox();}
+}
+
+/* ---------- 今日 ---------- */
+function renderToday(){
+  const total=dayCount(),sched=scheduledDay();
+  viewDay=Math.min(Math.max(viewDay,1),total);
+  const s=dayStart(viewDay),e=dayEnd(viewDay);
+  const before=daysBetween(todayStr(),plan.startDate);
+  const pn=$("planNotice");
+  if(before>0){pn.hidden=false;pn.textContent=`讀經計畫將於 ${fullLabel(plan.startDate)} 開始，還有 ${before} 天。`;}
+  else if(daysBetween(dateOfDay(total),todayStr())>0){pn.hidden=false;pn.textContent="這期讀經計畫已經結束，可以繼續補讀未完成的章節。";}
+  else pn.hidden=true;
+
+  $("planLabel").textContent=viewDay===sched?"今天的進度":(viewDay<sched?"之前的進度":"之後的進度");
+  $("dayTitle").innerHTML=`第 ${viewDay} 天<small>共 ${total} 天</small>`;
+  $("rangeText").textContent=rangeLabel(s,e);
+  const dh=$("dateHint");dh.textContent=`預定 ${fullLabel(dateOfDay(viewDay))}`+(e>s?`・${e-s} 章`:"");
+  if(viewDay!==sched){const b=document.createElement("button");b.className="linkbtn";b.textContent="回到今天";b.style.marginLeft="12px";b.onclick=()=>{viewDay=sched;onDayChange();};dh.append(b);}
+  $("prevDay").disabled=viewDay<=1;$("nextDay").disabled=viewDay>=total;
+
+  const ul=$("chips");ul.innerHTML="";let last=-1;
+  for(let i=s;i<e;i++){
+    const{b,c}=CH[i];
+    if(b!==last){const li=document.createElement("li");li.className="book";li.textContent=BOOKS[b][0];ul.append(li);last=b;}
+    const li=document.createElement("li"),btn=document.createElement("button");
+    btn.className="chip";btn.textContent=c;btn.setAttribute("aria-pressed",me.done.has(i));
+    btn.setAttribute("aria-label",`${BOOKS[b][0]} 第 ${c} 章`);btn.onclick=()=>toggle(i);
+    li.append(btn);ul.append(li);
+  }
+  const cb=$("checkin");cb.disabled=false;
+  if(e===s){$("rangeText").textContent="休息日";cb.textContent="這天是休息日，不用讀經";cb.classList.add("done");cb.disabled=true;}
+  else if(dayCompleteFor(me.done,viewDay)){cb.textContent="這天已讀完 ✓";cb.classList.add("done");}
+  else{cb.textContent="全部讀完，打卡";cb.classList.remove("done");}
+
+  $("streak").textContent=streakOf(me.checkins);
+  $("readCount").textContent=me.done.size;
+  $("pct").textContent=(Math.floor(me.done.size/TOTAL*1000)/10)+"%";
+
+  let behind=0,first=null;
+  for(let i=0;i<dayEnd(sched);i++)if(!me.done.has(i)){behind++;if(first===null)first=dayOfChapter(i);}
+  const bx=$("behind");
+  if(behind>0&&first<sched){
+    bx.hidden=false;bx.textContent=`照進度到今天為止，還有 ${behind} 章沒讀。 `;
+    const b=document.createElement("button");b.className="linkbtn";b.textContent=`從第 ${first} 天開始補讀`;
+    b.onclick=()=>{viewDay=first;onDayChange();scrollTo({top:0,behavior:"smooth"});};bx.append(b);
+  }else bx.hidden=true;
+
+  const wk=$("week");wk.innerHTML="";const d=new Date();d.setDate(d.getDate()-13);
+  for(let k=0;k<14;k++){const ds=dstr(d),i=document.createElement("i");if(me.checkins[ds])i.classList.add("on");if(k===13)i.classList.add("today");i.title=`${d.getMonth()+1}/${d.getDate()}${me.checkins[ds]?" 已打卡":""}`;wk.append(i);d.setDate(d.getDate()+1);}
+  renderTapestry(s,e);
+}
+function renderTapestry(s,e){
+  const wrap=$("tapestry");wrap.innerHTML="";let idx=0;
+  BOOKS.forEach(([name,count],b)=>{
+    if(b===0||b===OT_COUNT){const t=document.createElement("div");t.className="testament";t.textContent=b===0?"舊約":"新約";wrap.append(t);}
+    const row=document.createElement("div");row.className="bookrow";
+    const nm=document.createElement("div");nm.className="name";nm.textContent=name;
+    const cells=document.createElement("div");cells.className="cells";let all=true;
+    for(let c=1;c<=count;c++,idx++){
+      const i=idx,btn=document.createElement("button");btn.className="cell";
+      if(me.done.has(i))btn.classList.add("on");else all=false;
+      if(i>=s&&i<e)btn.classList.add("cur");
+      btn.title=`${name} ${c}`;btn.setAttribute("aria-label",`${name} 第 ${c} 章${me.done.has(i)?"，已讀":""}`);
+      btn.onclick=()=>toggle(i);cells.append(btn);
+    }
+    if(all)row.classList.add("complete");row.append(nm,cells);wrap.append(row);
+  });
+}
+function toggle(i){
+  if(me.done.has(i))me.done.delete(i);else me.done.add(i);
+  if(me.done.has(i)&&dayCompleteFor(me.done,dayOfChapter(i)))me.checkins[todayStr()]=true;
+  commitMe();
+}
+function checkinDay(){
+  if(dayCompleteFor(me.done,viewDay))return;
+  for(let i=dayStart(viewDay);i<dayEnd(viewDay);i++)me.done.add(i);
+  me.checkins[todayStr()]=true;commitMe();
+  const cb=$("checkin");cb.classList.remove("stamp");void cb.offsetWidth;cb.classList.add("stamp");
+}
+function onDayChange(){navigated=true;renderToday();loadNoteBox();}
+
+/* ---------- 筆記 ---------- */
+let noteTimer=null,noteDay=null;
+function loadNoteBox(){
+  if(noteDay===viewDay)return;
+  flushNote();noteDay=viewDay;
+  $("noteText").value=(notes[viewDay]&&notes[viewDay].text)||"";
+  $("noteStatus").textContent="只有你自己看得到";
+}
+function flushNote(){if(noteTimer){clearTimeout(noteTimer);noteTimer=null;saveNote(noteDay);}}
+function saveNote(d){
+  if(d==null)return;
+  const text=$("noteText").value;
+  const prev=notes[d]&&notes[d].text||"";
+  if(text===prev)return;
+  notes[d]={day:d,text,range:rangeLabel(dayStart(d),dayEnd(d)),updatedAt:Date.now()};
+  saveCache();renderNotes();
+  queue("note-"+d,"saveNote",()=>({day:d,text:notes[d].text,range:notes[d].range}));
+  $("noteStatus").textContent="已儲存・只有你自己看得到";
+}
+$("noteText").addEventListener("input",()=>{
+  $("noteStatus").textContent="編輯中…";
+  clearTimeout(noteTimer);const d=noteDay;noteTimer=setTimeout(()=>{noteTimer=null;saveNote(d);},1000);
+});
+$("noteText").addEventListener("blur",flushNote);
+function renderNotes(){
+  const list=$("noteList");list.innerHTML="";
+  const days=Object.keys(notes).map(Number).filter(d=>notes[d]&&notes[d].text&&notes[d].text.trim()).sort((a,b)=>b-a);
+  $("noteEmpty").hidden=days.length>0;
+  days.forEach(d=>{
+    const n=notes[d],li=document.createElement("li");
+    const h=document.createElement("h3");h.textContent=`第 ${d} 天・${n.range||""}`;
+    const m=document.createElement("div");m.className="meta";const t=new Date(n.updatedAt||0);
+    m.textContent=`最後編輯 ${t.getMonth()+1}/${t.getDate()} ${pad(t.getHours())}:${pad(t.getMinutes())}`;
+    const p=document.createElement("p");p.textContent=n.text;
+    const b=document.createElement("button");b.className="linkbtn";b.textContent="打開這天";
+    b.onclick=()=>{viewDay=d;location.hash="today";onDayChange();};
+    li.append(h,m,p,b);list.append(li);
+  });
+}
+
+/* ---------- 團隊 ---------- */
+function colorOf(id){let h=0;for(const ch of String(id))h=(h*31+ch.charCodeAt(0))%360;return `hsl(${h} 38% 42%)`;}
+function avatar(m){
+  const s=document.createElement("span");s.className="av";s.setAttribute("aria-hidden","true");
+  const n=(m.name||"?").trim();s.textContent=/^[\x00-\x7F]+$/.test(n)?n.split(/\s+/).map(w=>w[0]).join("").slice(0,2).toUpperCase():n.slice(-2);
+  s.style.background=colorOf(m.id);return s;
+}
+function roleTag(m){
+  if(m.role==="owner"){const t=document.createElement("span");t.className="tag ok";t.textContent="建立者";return t;}
+  if(m.role==="manager"){const t=document.createElement("span");t.className="tag ok";t.textContent="管理員";return t;}
+  return null;
+}
+function renderTeam(){
+  const sched=scheduledDay();
+  $("teamSub").textContent=`今天是第 ${sched} 天，`+(dayEnd(sched)>dayStart(sched)?`預定讀 ${rangeLabel(dayStart(sched),dayEnd(sched))}。`:"是休息日。")+"金色刻度是照進度應該讀到的位置。";
+  const target=dayEnd(sched)/TOTAL*100;
+  const rows=Object.values(members).filter(m=>!m.hidden).map(m=>{const set=new Set(m.done||[]);return{m,set,n:set.size};}).sort((a,b)=>b.n-a.n);
+  const ul=$("teamList");ul.innerHTML="";
+  if(!rows.length){const li=document.createElement("li");li.className="sub";li.textContent="還沒有成員。";ul.append(li);}
+  rows.forEach(r=>{
+    const li=document.createElement("li");li.className="member";
+    const mid=document.createElement("div");
+    const who=document.createElement("div");who.className="who";who.textContent=r.m.name||"未命名成員";
+    if(myInfo&&r.m.id===myInfo.id){const em=document.createElement("em");em.textContent="你";who.append(em);}
+    const rt=roleTag(r.m);if(rt)who.append(rt);
+    const todayN=dayEnd(sched)-dayStart(sched),todayDone=dayCompleteFor(r.set,sched),behind=behindOf(r.set);
+    const late=behind>todayN&&behind>0;
+    const tg=document.createElement("span");tg.className="tag "+(late?"late":(todayDone&&todayN?"ok":""));
+    tg.textContent=late?`落後 ${behind} 章`:(todayN===0?"今日休息":(todayDone?"今日已完成":"今日未完成"));who.append(tg);
+    const meta=document.createElement("div");meta.className="meta";
+    meta.textContent=`已讀 ${r.n} 章・連續打卡 ${streakOf(r.m.checkins||{})} 天`;
+    const bar=document.createElement("div");bar.className="bar";
+    const fill=document.createElement("i");fill.style.width=(r.n/TOTAL*100)+"%";
+    const mark=document.createElement("b");mark.style.left=`calc(${target}% - 1px)`;bar.append(fill,mark);
+    mid.append(who,meta,bar);
+    const pc=document.createElement("div");pc.className="pct";pc.textContent=Math.floor(r.n/TOTAL*100)+"%";
+    li.append(avatar(r.m),mid,pc);ul.append(li);
+  });
+  if(myInfo&&document.activeElement!==$("myName"))$("myName").value=myInfo.name||"";
+  renderAdmin();
+}
+
+/* ---------- 帳號 ---------- */
+async function withBtn(btn,fn){btn.disabled=true;try{await fn();}catch(e){if(e.code!=="auth")alert(e.message);}btn.disabled=false;}
+$("saveName").onclick=e=>withBtn(e.target,async()=>{
+  const name=$("myName").value.trim();if(!name)return alert("請輸入名稱");
+  const r=await api("rename",{name});myInfo.name=r.name;if(members[myInfo.id])members[myInfo.id].name=r.name;saveCache();renderTeam();setSync("名稱已更新");
+});
+$("savePw").onclick=e=>withBtn(e.target,async()=>{
+  const o=$("pwOld").value,n=$("pwNew").value;
+  if(n.length<4)return alert("新密碼至少需要 4 個字元");
+  await api("changePassword",{oldPassword:o,newPassword:n});$("pwOld").value=$("pwNew").value="";setSync("密碼已更新");alert("密碼已更新");
+});
+$("logout").onclick=()=>{if(confirm("確定要登出嗎？")){api("logout").catch(()=>{});logout(false);}};
+
+/* ---------- 管理 ---------- */
+function renderAdmin(){
+  const mgr=isManager();$("adminTab").hidden=!mgr;
+  if(!mgr)return;
+  const act=$("adminList"),hid=$("hiddenList");act.innerHTML="";hid.innerHTML="";
+  const owner=myInfo.role==="owner";
+  Object.values(members).sort((a,b)=>(a.name||"").localeCompare(b.name||"","zh-Hant")).forEach(m=>{
+    const li=document.createElement("li");li.className="member";
+    const mid=document.createElement("div");const who=document.createElement("div");who.className="who";who.textContent=m.name;
+    if(m.id===myInfo.id){const em=document.createElement("em");em.textContent="你";who.append(em);}
+    const rt=roleTag(m);if(rt)who.append(rt);mid.append(who);
+    const btns=document.createElement("div");btns.className="row";
+    const add=(label,fn)=>{const b=document.createElement("button");b.className="btn sm";b.textContent=label;b.onclick=()=>withBtn(b,fn);btns.append(b);};
+    if(m.id!==myInfo.id&&m.role!=="owner"){
+      if(owner)add(m.role==="manager"?"取消管理員":"設為管理員",async()=>{await api("setRole",{memberId:m.id,role:m.role==="manager"?"member":"manager"});await refresh();});
+      if(owner||m.role!=="manager")add("重設密碼",async()=>{
+        const pw=prompt(`替「${m.name}」設定新密碼（至少 4 個字元），再把新密碼告訴對方：`);if(pw==null)return;
+        if(pw.length<4)return alert("密碼至少需要 4 個字元");
+        await api("resetPassword",{memberId:m.id,password:pw});alert("密碼已重設");
+      });
+      add(m.hidden?"恢復到名單":"移出名單",async()=>{
+        if(!m.hidden&&!confirm(`確定要把「${m.name}」移出團隊名單嗎？對方的紀錄會保留，之後可以恢復。`))return;
+        await api("setHidden",{memberId:m.id,hidden:!m.hidden});await refresh();
+      });
+    }
+    li.append(avatar(m),mid,btns);(m.hidden?hid:act).append(li);
+  });
+  $("hiddenTitle").hidden=!hid.children.length;
+}
+
+/* ---------- 計畫 ---------- */
+const endOf=(start,months)=>{const d=parseDate(start);return dstr(new Date(d.getFullYear(),d.getMonth()+months,d.getDate()-1));};
+function computeCounts(c){
+  const end=endOf(c.startDate,c.months),days=daysBetween(c.startDate,end)+1;
+  const counts=new Array(days).fill(0),rest=new Set(c.restWeekdays),free=[];let fixedSum=0;
+  for(let i=0;i<days;i++){
+    const ds=addDays(c.startDate,i);
+    if(c.fixed[ds]!=null){counts[i]=c.fixed[ds];fixedSum+=c.fixed[ds];}
+    else if(!rest.has(parseDate(ds).getDay()))free.push(i);
+  }
+  const remain=TOTAL-fixedSum;
+  if(remain<0||(remain>0&&!free.length))return{counts,ok:false,over:fixedSum-TOTAL,free:free.length};
+  free.forEach((i,k)=>counts[i]=Math.floor((k+1)*remain/free.length)-Math.floor(k*remain/free.length));
+  return{counts,ok:true,free:free.length};
+}
+let selDate=null;
+function resetDraft(){
+  const c=plan.cfg||{months:4,restWeekdays:[],fixed:{}};
+  draft={startDate:plan.startDate,months:c.months,restWeekdays:[...c.restWeekdays],fixed:{...c.fixed}};
+  const r=computeCounts(draft);
+  draft.counts=plan.cfg?r.counts:[...plan.counts];draft.ok=true;draftDirty=false;
+}
+function recompute(){const r=computeCounts(draft);draft.counts=r.counts;draft.ok=r.ok;draft.err=r;draftDirty=true;renderPlan();}
+function describe(counts,start){
+  const read=counts.filter(c=>c>0),freq={};read.forEach(c=>freq[c]=(freq[c]||0)+1);
+  const parts=Object.keys(freq).map(Number).sort((a,b)=>freq[b]-freq[a]).slice(0,4).map(c=>`${c} 章 ${freq[c]} 天`);
+  const more=Object.keys(freq).length>4?"等":"";
+  return{range:`${fullLabel(start)} 到 ${fullLabel(addDays(start,counts.length-1))}`,total:counts.length,read:read.length,rest:counts.length-read.length,mix:parts.join("、")+more};
+}
+function renderPlan(){
+  if(!draft||!draftDirty)resetDraft();
+  const canEdit=isManager();
+  const sv=describe(plan.counts,plan.startDate);
+  $("planSummary").textContent=`目前計畫：${sv.range}，共 ${sv.total} 天。`;
+  const dn=$("planDefaultNote");
+  if(!planSaved){dn.hidden=false;dn.textContent=canEdit?"團隊還沒有儲存讀經計畫，下面是從今天起算四個月的預設計畫。確認或調整後請按「儲存計畫」，所有成員就會照這份計畫讀經。":"管理員還沒有設定團隊讀經計畫，目前先顯示從今天起算四個月的預設計畫。";}
+  else dn.hidden=true;
+  $("planReadonly").hidden=canEdit;$("planEditor").hidden=!canEdit;$("planFoot").hidden=!canEdit;
+
+  $("pStart").value=draft.startDate;$("pMonths").value=String(draft.months);
+  const rp=$("pRest");rp.innerHTML="";
+  for(let w=0;w<7;w++){const b=document.createElement("button");b.textContent=WEEK[w];b.setAttribute("aria-pressed",draft.restWeekdays.includes(w));
+    b.setAttribute("aria-label",`星期${WEEK[w]}休息`);
+    b.onclick=()=>{draft.restWeekdays=draft.restWeekdays.includes(w)?draft.restWeekdays.filter(x=>x!==w):[...draft.restWeekdays,w];recompute();};rp.append(b);}
+
+  const dv=describe(draft.counts,draft.startDate),st=$("pStats");st.innerHTML="";
+  const l1=document.createElement("b");l1.textContent=`共 ${dv.total} 天，讀經 ${dv.read} 天`+(dv.rest?`、休息 ${dv.rest} 天`:"");
+  const l2=document.createElement("div");l2.textContent=dv.range;
+  const l3=document.createElement("div");
+  if(draft.ok)l3.textContent=`每天章數：${dv.mix}`;
+  else{l3.className="bad";l3.textContent=draft.err&&draft.err.over>0?`手動設定的章數合計超出全本 ${draft.err.over} 章，請減少一些日子的章數。`:"沒有可以自動分配的日子，請減少休息日或把某些日子改回自動分配。";}
+  st.append(l1,l2,l3);
+
+  renderCal(canEdit);
+  const sum=$("planSum"),ok=draft.ok;
+  sum.className="sum"+(ok?"":" bad");
+  sum.textContent=!ok?"目前的設定無法排完全本，請調整後再儲存。":(draftDirty?"有尚未儲存的變更。":(planSaved?"計畫已儲存。":"這是預設計畫，尚未儲存。"));
+  $("pSave").disabled=!ok||(!draftDirty&&planSaved);
+  $("pRevert").disabled=!draftDirty;
+}
+function renderCal(canEdit){
+  const cal=$("cal");cal.innerHTML="";
+  const start=draft.startDate,n=draft.counts.length,end=addDays(start,n-1),today=todayStr();
+  const P2=[0];draft.counts.forEach(c=>P2.push(P2[P2.length-1]+c));
+  let d=parseDate(start);d=new Date(d.getFullYear(),d.getMonth(),1);
+  const last=parseDate(end);
+  while(d<=last){
+    const y=d.getFullYear(),m=d.getMonth();
+    const box=document.createElement("div");box.className="month";
+    const h=document.createElement("h4");h.textContent=`${y} 年 ${m+1} 月`;box.append(h);
+    const g=document.createElement("div");g.className="grid";
+    for(let w=0;w<7;w++){const x=document.createElement("div");x.className="wd";x.textContent=WEEK[w];g.append(x);}
+    for(let k=0;k<new Date(y,m,1).getDay();k++){const x=document.createElement("div");g.append(x);}
+    const dim=new Date(y,m+1,0).getDate();
+    for(let day=1;day<=dim;day++){
+      const ds=dstr(new Date(y,m,day)),i=daysBetween(start,ds);
+      const c=document.createElement("button");c.className="dcell";
+      if(i<0||i>=n){c.classList.add("out");c.tabIndex=-1;c.setAttribute("aria-hidden","true");g.append(c);continue;}
+      const cnt=draft.counts[i];
+      if(cnt===0)c.classList.add("rest");
+      if(draft.fixed[ds]!=null)c.classList.add("fixed");
+      if(ds===today)c.classList.add("today");
+      if(ds===selDate)c.classList.add("sel");
+      c.innerHTML=`<span class="n">${day}</span><span class="c">${cnt===0?"休":cnt}</span>`;
+      c.setAttribute("aria-label",`${m+1} 月 ${day} 日，${cnt===0?"休息日":cnt+" 章"}`);
+      c.onclick=()=>{selDate=selDate===ds?null:ds;renderPlanKeepScroll();};
+      g.append(c);
+    }
+    box.append(g);
+    if(selDate&&parseDate(selDate).getFullYear()===y&&parseDate(selDate).getMonth()===m){
+      const i=daysBetween(start,selDate);if(i>=0&&i<n)box.append(dayPanel(i,P2,canEdit));
+    }
+    cal.append(box);
+    d=new Date(y,m+1,1);
+  }
+}
+function renderPlanKeepScroll(){const y=scrollY;renderPlan();scrollTo(0,y);}
+function dayPanel(i,P2,canEdit){
+  const ds=addDays(draft.startDate,i),dd=parseDate(ds),cnt=draft.counts[i],isFixed=draft.fixed[ds]!=null;
+  const p=document.createElement("div");p.className="daypanel";
+  const t=document.createElement("div");t.className="t";t.textContent=`${dd.getMonth()+1} 月 ${dd.getDate()} 日（${WEEK[dd.getDay()]}）・第 ${i+1} 天`;
+  const rg=document.createElement("div");rg.className="rg";rg.textContent=cnt?rangeLabel(P2[i],P2[i+1]):"休息日";
+  p.append(t,rg);
+  if(!canEdit)return p;
+  const row=document.createElement("div");row.className="row";
+  const sp=document.createElement("div");sp.className="stepper";
+  const minus=document.createElement("button");minus.textContent="−";minus.setAttribute("aria-label","減少一章");minus.disabled=cnt<=0;
+  const val=document.createElement("span");val.textContent=cnt?`${cnt} 章`:"休息";
+  const plus=document.createElement("button");plus.textContent="+";plus.setAttribute("aria-label","增加一章");plus.disabled=cnt>=60;
+  minus.onclick=()=>{draft.fixed[ds]=Math.max(0,cnt-1);recompute();};
+  plus.onclick=()=>{draft.fixed[ds]=Math.min(60,cnt+1);recompute();};
+  sp.append(minus,val,plus);row.append(sp);
+  const rb=document.createElement("button");rb.className="btn";
+  if(cnt===0){rb.textContent="改成讀經日";rb.onclick=()=>{const r=draft.counts.filter(c=>c>0);draft.fixed[ds]=r.length?Math.round(TOTAL/ (r.length+1)):10;recompute();};}
+  else{rb.textContent="設為休息日";rb.onclick=()=>{draft.fixed[ds]=0;recompute();};}
+  row.append(rb);
+  if(isFixed){const ab=document.createElement("button");ab.className="btn";ab.textContent="改回自動分配";ab.onclick=()=>{delete draft.fixed[ds];recompute();};row.append(ab);}
+  const hint=document.createElement("div");hint.className="hint";
+  hint.textContent=isFixed?"這天已手動調整，其他自動分配的日子會一起增減來補平。":"這天目前是自動分配。調整後會固定下來，其他日子自動補平。";
+  p.append(row,hint);return p;
+}
+$("pStart").onchange=e=>{if(!isDate(e.target.value))return;draft.startDate=e.target.value;selDate=null;recompute();};
+$("pMonths").onchange=e=>{draft.months=+e.target.value;recompute();};
+$("pRevert").onclick=()=>{selDate=null;resetDraft();renderPlan();};
+$("pSave").onclick=()=>{
+  if(!draft.ok)return;
+  const end=endOf(draft.startDate,draft.months),fixed={};
+  for(const k in draft.fixed)if(k>=draft.startDate&&k<=end)fixed[k]=draft.fixed[k];
+  const p=normPlan({startDate:draft.startDate,counts:draft.counts,cfg:{months:draft.months,restWeekdays:draft.restWeekdays,fixed}});
+  if(!p){alert("計畫合計不是 1,189 章，無法儲存。");return;}
+  setPlan(p);planSaved=true;draftDirty=false;
+  if(!navigated)viewDay=scheduledDay();
+  saveCache();
+  queue("plan","savePlan",()=>({plan:{startDate:plan.startDate,counts:plan.counts,cfg:plan.cfg}}));
+  renderAll();renderPlan();
+};
+
+/* ---------- 分頁 ---------- */
+const VIEWS=["today","team","notes","plan","admin"];
+function route(){
+  let v=location.hash.slice(1);if(!VIEWS.includes(v))v="today";
+  if(v==="admin"&&!isManager())v="today";
+  document.querySelectorAll("[data-view]").forEach(s=>s.hidden=s.id!=="v-"+v);
+  document.querySelectorAll("nav.tabs a").forEach(a=>{if(a.getAttribute("href")==="#"+v)a.setAttribute("aria-current","page");else a.removeAttribute("aria-current");});
+  if(v==="plan")renderPlan();
+}
+addEventListener("hashchange",()=>{route();if(location.hash==="#team"&&Date.now()-lastRefresh>30000)refresh();});
+function renderAll(){renderToday();renderNotes();renderTeam();if(location.hash==="#plan"&&!draftDirty)renderPlan();}
+$("prevDay").onclick=()=>{viewDay--;onDayChange();};
+$("nextDay").onclick=()=>{viewDay++;onDayChange();};
+$("checkin").onclick=checkinDay;
+
+/* ---------- 登入 ---------- */
+function showAuth(mode){
+  $("tLogin").setAttribute("aria-pressed",mode==="login");$("tJoin").setAttribute("aria-pressed",mode==="join");
+  $("fLogin").hidden=mode!=="login";$("fJoin").hidden=mode!=="join";$("authErr").textContent="";
+}
+$("tLogin").onclick=()=>showAuth("login");
+$("tJoin").onclick=()=>showAuth("join");
+async function doAuth(e,action,payload){
+  e.preventDefault();const btn=e.target.querySelector("button[type=submit]");
+  btn.disabled=true;$("authErr").textContent="";
+  try{const r=await api(action,payload);token=r.token;firstState=true;saveCache();showApp();await refresh();}
+  catch(x){$("authErr").textContent=x.message;}
+  btn.disabled=false;
+}
+$("fLogin").onsubmit=e=>doAuth(e,"login",{name:$("lName").value.trim(),password:$("lPw").value});
+$("fJoin").onsubmit=e=>{
+  if($("jPw").value!==$("jPw2").value){e.preventDefault();$("authErr").textContent="兩次輸入的密碼不一樣";return;}
+  if($("jPw").value.length<4){e.preventDefault();$("authErr").textContent="密碼至少需要 4 個字元";return;}
+  doAuth(e,"register",{invite:$("jCode").value.trim(),name:$("jName").value.trim(),password:$("jPw").value});
+};
+function showApp(){$("v-login").hidden=true;$("app").hidden=false;renderAll();noteDay=null;loadNoteBox();route();}
+function showLogin(msg){$("app").hidden=true;$("v-login").hidden=false;showAuth("login");if(msg)$("authErr").textContent=msg;}
+function logout(expired){
+  token=null;myInfo=null;members={};notes={};loadMe(null);planSaved=false;setPlan(defaultPlan());
+  Object.keys(writers).forEach(k=>delete writers[k]);clearTimeout(meTimer);meTimer=null;
+  try{localStorage.removeItem(CACHE);}catch(e){}
+  showLogin(expired?"登入已過期，請重新登入":"");
+}
+
+document.addEventListener("visibilitychange",()=>{if(!document.hidden&&token){retryDirty();if(Date.now()-lastRefresh>30000)refresh();}});
+addEventListener("online",retryDirty);
+addEventListener("pagehide",()=>{if(meTimer){clearTimeout(meTimer);meTimer=null;queue("progress","saveProgress",serMe);}flushNote();});
+
+/* ---------- 啟動 ---------- */
+(function init(){
+  setPlan(plan);
+  if(!/^https:\/\/script\.google\.com\//.test(API)){$("setupMsg").hidden=false;return;}
+  try{
+    const c=JSON.parse(localStorage.getItem(CACHE)||"null");
+    if(c&&c.token){token=c.token;myInfo=c.myInfo;const p=normPlan(c.plan);if(p){setPlan(p);planSaved=true;}loadMe(c.me);notes=c.notes||{};members=c.members||{};}
+  }catch(e){}
+  viewDay=scheduledDay();
+  if(token){showApp();refresh();}else showLogin();
+})();
+</script>
+</body>
+</html>
